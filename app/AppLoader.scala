@@ -1,8 +1,4 @@
-import actors.StatsActor
-import actors.StatsActor.Ping
-import akka.actor.Props
 import controllers.Application
-import filters.StatsFilter
 import play.api.ApplicationLoader.Context
 import play.api._
 import play.api.db.{DBComponents, HikariCPComponents}
@@ -12,14 +8,15 @@ import play.api.mvc._
 import router.Routes
 import play.api.routing.Router
 import com.softwaremill.macwire._
-import play.api.cache.caffeine.CaffeineCacheComponents
 import _root_.controllers.AssetsComponents
+import play.api.cache.ehcache.EhCacheComponents
 import scalikejdbc.config.DBs
-import services.{AuthService, SunService, UserAuthAction, WeatherService}
+import services.{AuthService, UserAuthAction}
 
 import scala.concurrent.Future
 
 class AppApplicationLoader extends ApplicationLoader {
+
   def load(context: Context) = {
     LoggerConfigurator(context.environment.classLoader).foreach { configurator =>
       configurator.configure(context.environment)
@@ -30,7 +27,7 @@ class AppApplicationLoader extends ApplicationLoader {
 
 class AppComponents(context: Context) extends BuiltInComponentsFromContext(context)
   with AhcWSComponents with EvolutionsComponents with DBComponents
-  with HikariCPComponents with CaffeineCacheComponents with AssetsComponents {
+  with HikariCPComponents with EhCacheComponents with AssetsComponents {
 
   private val log = Logger(this.getClass)
 
@@ -39,10 +36,7 @@ class AppComponents(context: Context) extends BuiltInComponentsFromContext(conte
   lazy val router: Router = wire[Routes]
   lazy val applicationController = wire[Application]
 
-  lazy val sunService = wire[SunService]
-  lazy val weatherService = wire[WeatherService]
-  lazy val statsFilter: Filter = wire[StatsFilter]
-  override lazy val httpFilters = Seq(statsFilter)
+  override lazy val httpFilters = Seq()
 
   lazy val authService: AuthService = new AuthService(defaultCacheApi.sync)
 
@@ -50,22 +44,19 @@ class AppComponents(context: Context) extends BuiltInComponentsFromContext(conte
 
   override lazy val dynamicEvolutions = new DynamicEvolutions
 
-  lazy val statsActor = actorSystem.actorOf(
-    Props(wire[StatsActor]), StatsActor.name)
-
-
   applicationLifecycle.addStopHook { () =>
     log.info("The app is about to stop")
     DBs.closeAll()
     Future.successful(Unit)
   }
 
-  val onStart = {
+  val onStart: Unit = {
     log.info("The app is about to start")
     DBs.setupAll()
+    // Evolutions are checked here
     applicationEvolutions
+    // The `users` must be created at this point
     val users = authService.getUsers()
     log.info(s"Obtained ${users.size} users")
-    statsActor ! Ping
   }
 }

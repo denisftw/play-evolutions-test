@@ -10,7 +10,7 @@ pipelineStages := Seq(digest)
 
 libraryDependencies ++= Seq(
   jdbc,
-  caffeine,
+  ehcache,
   ws,
   evolutions,
   "com.softwaremill.macwire" %% "macros" % "2.3.0" % "provided",

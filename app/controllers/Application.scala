@@ -1,26 +1,16 @@
 package controllers
 
-import java.util.concurrent.TimeUnit
-
-import actors.StatsActor
 import akka.actor.ActorSystem
-import akka.util.Timeout
-import model.CombinedData
 import controllers.Assets.Asset
-import play.api.libs.json.Json
 import play.api.mvc._
-import akka.pattern.ask
 import services._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.data.Form
 import play.api.data.Forms._
 
 case class UserLoginData(username: String, password: String)
 
 class Application(components: ControllerComponents, assets: Assets,
-    sunService: SunService,
-    weatherService: WeatherService,
     actorSystem: ActorSystem,
     authService: AuthService,
     userAuthAction: UserAuthAction) extends AbstractController(components) {
@@ -33,25 +23,6 @@ class Application(components: ControllerComponents, assets: Assets,
 
   def restricted = userAuthAction { userAuthRequest =>
     Ok(views.html.restricted(userAuthRequest.user))
-  }
-
-  def data = Action.async {
-    val lat = -33.8830
-    val lon = 151.2167
-    val sunInfoF = sunService.getSunInfo(lat, lon)
-    val temperatureF = weatherService.getTemperature(lat, lon)
-
-    implicit val timeout = Timeout(5, TimeUnit.SECONDS)
-    val requestsF = (actorSystem.actorSelection(StatsActor.path) ?
-      StatsActor.GetStats).mapTo[Int]
-
-    for {
-      sunInfo <- sunInfoF
-      temperature <- temperatureF
-      requests <- requestsF
-    } yield {
-      Ok(Json.toJson(CombinedData(sunInfo, temperature, requests)))
-    }
   }
 
   def login = Action {
