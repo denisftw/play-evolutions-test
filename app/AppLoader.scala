@@ -44,7 +44,7 @@ class AppComponents(context: Context) extends BuiltInComponentsFromContext(conte
   lazy val statsFilter: Filter = wire[StatsFilter]
   override lazy val httpFilters = Seq(statsFilter)
 
-  lazy val authService = new AuthService(defaultCacheApi.sync)
+  lazy val authService: AuthService = new AuthService(defaultCacheApi.sync)
 
   lazy val userAuthAction = wire[UserAuthAction]
 
@@ -64,6 +64,8 @@ class AppComponents(context: Context) extends BuiltInComponentsFromContext(conte
     log.info("The app is about to start")
     DBs.setupAll()
     applicationEvolutions
+    val users = authService.getUsers()
+    log.info(s"Obtained ${users.size} users")
     statsActor ! Ping
   }
 }

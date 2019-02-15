@@ -17,6 +17,8 @@ import scala.concurrent.duration.Duration
   */
 class AuthService(cacheApi: SyncCacheApi) {
 
+  println("[AuthService] init")
+
   def login(userCode: String, password: String): Option[Cookie] = {
     for {
       user <- checkUser(userCode, password)
@@ -32,6 +34,12 @@ class AuthService(cacheApi: SyncCacheApi) {
       user <- cacheApi.get[User](cookie.value)
     } yield {
       user
+    }
+  }
+
+  def getUsers(): Seq[User] = {
+    DB.readOnly { implicit session =>
+      sql"select * from users".map(User.fromRS).list().apply()
     }
   }
 

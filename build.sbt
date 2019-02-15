@@ -14,7 +14,7 @@ libraryDependencies ++= Seq(
   ws,
   evolutions,
   "com.softwaremill.macwire" %% "macros" % "2.3.0" % "provided",
-  "org.postgresql" % "postgresql" % "42.2.5",
+  "com.h2database" % "h2" % "1.4.192",
   "org.scalikejdbc" %% "scalikejdbc" % "3.3.2",
   "org.scalikejdbc" %% "scalikejdbc-config"  % "3.3.2",
   "ch.qos.logback"  %  "logback-classic" % "1.2.3",
